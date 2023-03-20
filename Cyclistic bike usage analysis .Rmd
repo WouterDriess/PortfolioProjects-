@@ -1,0 +1,198 @@
+---
+title: "Data-Driven Insights for Converting Casual Riders into Annual Members"
+author: "Wouter Driessen"
+date: "2023-03-17"
+output: html_document
+---
+## Business Task: 
+In this case-study the marketing analyst team at the fictional company Cyclistic wants to understand the differences in usage patterns between annual members and casual riders to design a new marketing strategy aimed at converting casual riders into annual members. The goal is to analyze historical bike trip data to identify patterns and insights that can be used to support data-driven recommendations. 
+
+### Research quenstion: 
+How do annual members and casual riders use Cyclistic bikes differently?
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "~/Dropbox/Data_Analytics/Case_study1")
+library(janitor)
+library(tidyverse)
+library(lubridate)
+library(scales)
+library(gridExtra)
+```
+
+### Loading the data files 
+
+Loading the data files from April 2020 to march 2021 and combing into a data frame.
+
+```{r Loading files and creating data frame}
+df1 <- read.csv("202004-divvy-tripdata.csv")
+df2 <- read.csv("202005-divvy-tripdata.csv")
+df3 <- read.csv("202006-divvy-tripdata.csv")
+df4 <- read.csv("202007-divvy-tripdata.csv")
+df5 <- read.csv("202008-divvy-tripdata.csv")
+df6 <- read.csv("202009-divvy-tripdata.csv")
+df7 <- read.csv("202010-divvy-tripdata.csv")
+df8 <- read.csv("202011-divvy-tripdata.csv")
+df9 <- read.csv("202012-divvy-tripdata.csv")
+df10 <- read.csv("202101-divvy-tripdata.csv")
+df11 <- read.csv("202102-divvy-tripdata.csv")
+df12 <- read.csv("202103-divvy-tripdata.csv")
+bike_rides <- rbind(df1,df2,df3,df4,df5,df6,df7,df8,df9,df9,df10,df11,df12)
+```
+
+### Data Cleaning
+
+The data was cleaned by setting appropriate data types and removing rows with negative duration times for bike rides. 
+
+```{r}
+# Cleaning potential empty rows or colomns 
+bike_data <- remove_empty(bike_rides, which = c("rows","cols"))
+
+#Converting character data to date format
+bike_rides$started_at <- ymd_hms(bike_rides$started_at)
+bike_rides$ended_at <- ymd_hms(bike_rides$ended_at)
+
+
+# Omitting negative duration
+bike_rides$started_at <- ymd_hms(bike_rides$started_at)
+bike_rides$ended_at <- ymd_hms(bike_rides$ended_at)
+bike_rides$duration <- difftime(bike_rides$ended_at, bike_rides$started_at, units = "min")
+bike_rides <- bike_rides %>% filter(duration >0)
+```
+
+
+
+```{r}
+# Define colors
+c1 <- "#4C72B0" # dark blue
+c2 <- "#DD8452" # orange
+# Line graph showing average duration over 12 months.
+bike_rides %>% 
+    group_by(month=format(started_at,"%Y-%m"), member_casual) %>% 
+    summarise(avgduration= mean(duration)) %>% 
+    ggplot(aes(x=month, y=avgduration, color=member_casual, group = member_casual)) +
+    geom_line(aes(color = member_casual),size = 1.5)+
+    theme(axis.text.x = element_text(angle = 45)) +
+    scale_color_manual(values=c('casual'=c1, 'member'=c2),
+                     labels=c('Casual users','Membership users')) +
+   labs(title="Duration of casual and member bike rides over a year",
+         x="Months",
+         y="Duration of use in minutes",
+         color="User type") 
+```
+### Duration of casual and member bike rides over a year
+
+The graph shows the duration of bike rides over a year, grouped by user type: casual users and members. The x-axis represents the months of the year, while the y-axis shows the duration of use in minutes. The blue line represents casual users, while the red line represents members.
+
+From the graph, we can see that casual users have an overall higher duration of use than members. The duration starts to decrease since July 2020 but peaks again in January 2021, which is similar to the trend observed for members. However, the members have a relatively higher peak compared to casual users. Overall, the graph suggests that the duration of use for both user types has a seasonal pattern, with higher usage during the warmer months of the year.
+
+
+```{r}
+# Line graph indicating average duration of casual bike rides by start time of day.
+plot1 <- bike_rides %>% 
+  group_by(hour=format(started_at,"%H")) %>% 
+  filter(member_casual=="casual") %>% 
+  summarise(avgduration= mean(duration)) %>% 
+  ggplot(aes(x=hour, y=avgduration,group=1)) +
+  geom_line(col=c1,size = 1.5) +
+  scale_x_discrete(labels = c("12AM", "1AM", "2AM", "3AM", "4AM", "5AM", "6AM", "7AM", "8AM", "9AM", "10AM", "11AM", "12PM", "1PM", "2PM", "3PM", "4PM", "5PM", "6PM", "7PM", "8PM", "9PM", "10PM", "11PM")) +
+  theme(axis.text.x = element_text(angle = 45, size = 10))  +
+  labs(title="Avarage duration of casual bike rides by start time of day.",
+       x="Time of the day",
+       y="Avarage duration of the bike ride in minutes",
+       color='User type') 
+
+# Line graph indicating average duration of member bike rides by start time of day.
+plot2 <- bike_rides %>% 
+  group_by(hour=format(started_at,"%H")) %>% 
+  filter(member_casual=="member") %>% 
+  summarise(avgduration= mean(duration)) %>% 
+  ggplot(aes(x=hour, y=avgduration,group=1)) +
+  geom_line(col=c2,size = 1.5) +
+  scale_x_discrete(labels = c("12AM", "1AM", "2AM", "3AM", "4AM", "5AM", "6AM", "7AM", "8AM", "9AM", "10AM", "11AM", "12PM", "1PM", "2PM", "3PM", "4PM", "5PM", "6PM", "7PM", "8PM", "9PM", "10PM", "11PM")) +
+  theme(axis.text.x = element_text(angle = 45, size = 10))  +
+  labs(title="Avarage duration of member bike rides by start time of day.",
+       x="Time of the day",
+       y="Avarage duration of the bike ride in minutes",
+       color='User type') 
+
+grid.arrange( plot1, plot2, ncol=1)
+```
+### Avarage duration of casual membership bike rides by start time of day.
+
+The two graphs show the average duration of bike rides by the hour of the day, for casual users (in blue) and members (in red). The first graph shows that the average duration of bike rides for casual users is highest around 4am, drops to a minimum around 7am, and then slowly builds up again throughout the day. The second graph shows that the average duration of bike rides for members is highest around 7am, drops to a minimum around 5pm, and then slowly builds up again until it peaks at around 8pm. Overall, the graphs suggest that there are different usage patterns for casual users and members, with members using the bikes more during typical commuting hours, while casual users have a more varied usage pattern.
+
+
+```{r}
+# Bar graph indicating the top 30 most used start stations in Chicago.
+bike_rides %>% 
+  group_by(start_station_name) %>% 
+  summarise(start_member=sum(member_casual=="member"), start_casual=sum(member_casual=="casual"), total=start_member+start_casual) %>% 
+  arrange(desc(total)) %>% 
+  slice(2:33) %>% #to omit the first two that have no name 
+  pivot_longer(cols=c(start_member, start_casual), names_to="member_type", values_to="count") %>% 
+  ggplot(aes(x=reorder(start_station_name, total), y=count, fill=member_type,pct)) + 
+  geom_bar(stat="identity")+
+   scale_fill_manual(values = c(c2, c1),
+                    name = "User type",
+                    labels = c("Membership users", "Casual users"))+
+  coord_flip()+
+  labs(title="Top 30 most used start stations in Chicago", 
+                x="Starting station",
+                y="Started bike rides",
+                color="User type")
+```
+
+### Top 30 most used start stations in Chicago
+
+The graph shows the top 30 most used start stations in Chicago and how annual members and casual riders use Cyclistic bikes differently. The x-axis represents the starting station, sorted by the total number of rides started at each station, and the y-axis represents the number of bike rides started. The bars are colored to represent the two types of users: blue for annual members and orange for casual riders.
+
+We can see that there is a clear difference in usage patterns between annual members and casual riders. Annual members are more likely to use the bikes for commuting, with higher usage patterns at stations located near transportation hubs or business districts, such as Clark St & Elm St, Lake Shore Dr & Monroe St, and Dearborn St & Erie St. In contrast, casual riders tend to use the bikes more for leisure or tourism, with higher usage patterns at stations located near parks or tourist attractions, such as Theater on the Lake, Millennium Park, and Streeter Dr & Grand Ave.
+
+Overall, the graph suggests that annual members and casual riders have different needs and usage patterns when it comes to bike sharing, and that this may be related to the different types of trips they are using the bikes for. Understanding these differences can help Cyclistic better tailor its services to meet the needs of its customers and potentially attract new users.'
+  
+
+
+```{r}
+# Bar graph indicating the bike ride counts by bike type and user type of bikes 
+bike_rides %>% 
+  group_by(rideable_type) %>% 
+  summarise(type_member=sum(member_casual=="member"), 
+            type_casual=sum(member_casual=="casual"), 
+            total=type_member+type_casual) %>% 
+  pivot_longer(cols=c(type_member, type_casual), 
+               names_to="member_type", 
+               values_to="count") %>% 
+            ggplot(aes(reorder(x=rideable_type,-total),y=count,fill=member_type))+
+            geom_bar(stat="identity")+
+            scale_fill_manual(values = c(c2, c1),
+                    name = "User type",
+                    labels = c("Membership users", "Casual users"))+
+            theme(axis.text.x = element_text (size = 10))+
+            scale_y_continuous(labels=comma)+
+      labs(title='Bike Ride Counts by Bike Type and User Type', 
+       x="Bike Type",
+       y="Number of Rides",
+       color="User Type")
+
+```
+### Bike Ride Counts by Bike Type and User Type
+
+The graph shows the breakdown of bike rides by the type of bike and member type. The three types of bikes are classic bikes, docked bikes, and electric bikes. 
+
+From the graph, we can see that docked bikes have the highest total number of rides, followed by classic bikes and electric bikes. For docked bikes, the number of member rides is higher than the number of casual rides, whereas for classic and electric bikes, the number of casual rides is higher than the number of member rides.
+
+### Based on the analysis of the historical bike trip data, here are the top 3 recommendations for Cyclistic to convert casual riders into annual members:
+
+- Develop targeted marketing campaigns: Given that the usage patterns of casual users and members differ significantly, Cyclistic should develop targeted marketing campaigns to appeal to each group's unique needs. For example, for casual users, Cyclistic could focus on promoting the bikes' recreational benefits, while for members, the company could emphasize the convenience and cost-effectiveness of using the bikes for commuting.
+- Offer flexible pricing plans: Cyclistic could offer flexible pricing plans that cater to the different needs and usage patterns of its customers. For example, the company could introduce a pay-as-you-go plan for casual users who use the bikes sporadically, while offering discounted annual memberships for frequent users who use the bikes for commuting.
+- Expand bike stations strategically: Cyclistic could strategically expand bike stations in areas where there is high demand from both casual users and members. For example, the company could consider adding more stations near transportation hubs and business districts to cater to the needs of members who use the bikes for commuting. Similarly, Cyclistic could expand bike stations near parks and tourist attractions to attract more casual users who use the bikes for leisure or tourism.
+
+### Conclusion
+
+Overall, the analysis of historical bike trip data reveals that annual members and casual riders use Cyclistic bikes differently. Casual riders tend to have higher overall durations of use, with a seasonal pattern of higher usage during warmer months. Members, on the other hand, have a more specific usage pattern, with higher usage during typical commuting hours. The top 30 most used start stations also indicate that annual members and casual riders have different needs and usage patterns when it comes to bike sharing. Understanding these differences can help Cyclistic design a new marketing strategy to convert casual riders into annual members and better tailor its services to meet the needs of its customers.
+
+
+
+
