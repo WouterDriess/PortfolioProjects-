@@ -156,10 +156,12 @@ during typical commuting hours, while casual users have a more varied usage patt
 # Bar graph indicating the top 30 most used start stations in Chicago.
 bike_rides %>% 
   group_by(start_station_name) %>% 
-  summarise(start_member=sum(member_casual=="member"), start_casual=sum(member_casual=="casual"), total=start_member+start_casual) %>% 
+  summarise(start_member=sum(member_casual=="member"), start_casual=
+              sum(member_casual=="casual"), total=start_member+start_casual) %>% 
   arrange(desc(total)) %>% 
   slice(2:33) %>% #to omit the first two that have no name 
-  pivot_longer(cols=c(start_member, start_casual), names_to="member_type", values_to="count") %>% 
+  pivot_longer(cols=c(start_member, start_casual), names_to="member_type",
+               values_to="count") %>% 
   ggplot(aes(x=reorder(start_station_name, total), y=count, fill=member_type,pct)) + 
   geom_bar(stat="identity")+
    scale_fill_manual(values = c(c2, c1),
